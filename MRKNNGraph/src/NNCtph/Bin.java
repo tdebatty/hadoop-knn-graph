@@ -2,6 +2,9 @@ package NNCtph;
 
 import MRKNNGraph.Edge;
 import MRKNNGraph.Node;
+
+import info.debatty.stringsimilarity.JaroWinkler;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,6 +14,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.commons.codec.binary.Base64;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -30,6 +36,7 @@ import org.apache.hadoop.util.ToolRunner;
  * @author tibo
  */
 public class Bin extends Configured implements Tool {
+    public static final String KEY_SIMILARITY = "Bin.Reducer.Similarity";
 
     public static void main(String[] args) {
         try {
@@ -53,8 +60,11 @@ public class Bin extends Configured implements Tool {
         job.setInputFormatClass(TextInputFormat.class);
         TextInputFormat.addInputPaths(job, args[0]);
         
-        Parser p = new Parser();
-        job.getConfiguration().set("Bin.Mapper.Parser", toString(p));
+        StringParser sp = new Parser();
+        job.getConfiguration().set("Bin.Mapper.Parser", toString(sp));
+        
+        SimilarityCalculator sc = new JWNodeSimilarity();
+        job.getConfiguration().set(KEY_SIMILARITY, toString(sc));
         
         job.setMapperClass(BinMapper.class);
         job.setMapOutputKeyClass(Text.class);
@@ -78,10 +88,10 @@ public class Bin extends Configured implements Tool {
      * @throws java.lang.ClassNotFoundException */
    public static Object fromString( String s )
            throws IOException, ClassNotFoundException {
-        byte [] data = Base64Coder.decode( s );
+        byte [] data = Base64.decodeBase64(s );
         Object o;
         try (ObjectInputStream ois = new ObjectInputStream( 
-                new ByteArrayInputStream(  data ) )) {
+                new ByteArrayInputStream(data))) {
             o = ois.readObject();
         }
         return o;
@@ -93,13 +103,11 @@ public class Bin extends Configured implements Tool {
      * @throws java.io.IOException */
     public static String toString( Serializable o ) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream oos = new ObjectOutputStream( baos )) {
-            oos.writeObject( o );
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(o);
         }
-        return new String( Base64Coder.encode( baos.toByteArray() ) );
+        return new String(Base64.encodeBase64(baos.toByteArray()));
     }
-
-
 }
 
 class Parser implements StringParser {
@@ -113,7 +121,6 @@ class Parser implements StringParser {
         return n;
 
     }
-    
 }
 
 class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
@@ -155,7 +162,7 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
             return_key.set("1" + ss.Left().substring(1, 2));
             context.write(return_key, n);
             
-        } catch (Exception ex) {
+        } catch (IOException | InterruptedException ex) {
             System.err.println("Failed to parse " + s);
         }
     }
@@ -164,6 +171,18 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
 }
 
 class BinReducer extends Reducer<Text, Node, NullWritable, Text> {
+    SimilarityCalculator sc;
+    
+    @Override
+    protected void setup(Context context) throws IOException, InterruptedException {
+        try {
+            sc = (SimilarityCalculator) Bin.fromString(context.getConfiguration().get(Bin.KEY_SIMILARITY));
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(BinReducer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    
     
     @Override
     protected void reduce(Text key, Iterable<Node> values, Context context)
@@ -173,7 +192,7 @@ class BinReducer extends Reducer<Text, Node, NullWritable, Text> {
         for (Node n : values) {
             for (int i = 0; i < nodes.size(); i++) {
                 Node other = nodes.get(i);
-                double similarity = Similarity(n.value, other.value);
+                double similarity = sc.similarity(n, other);
 
                 Edge e = new Edge(n, other, similarity);
                 context.write(NullWritable.get(), new Text(e.toString()));
@@ -185,91 +204,13 @@ class BinReducer extends Reducer<Text, Node, NullWritable, Text> {
             nodes.add(new Node(n));
         }
     }
+}
 
-    private double Similarity(String value1, String value2) {
-        return jw_similarity(value1, value2);
+class JWNodeSimilarity implements SimilarityCalculator {
+
+    @Override
+    public double similarity(Node n1, Node n2) {
+        return JaroWinkler.Similarity(n1.value, n2.value);
     }
-
-    public static double jw_similarity(String s1, String s2) {
-        if (s1.equals(s2)) {
-            return 1.0;
-        }
-
-        // ensure that s1 is shorter than or same length as s2
-        if (s1.length() > s2.length()) {
-            String tmp = s2;
-            s2 = s1;
-            s1 = tmp;
-        }
-
-    // (1) find the number of characters the two strings have in common.
-        // note that matching characters can only be half the length of the
-        // longer string apart.
-        int maxdist = s2.length() / 2;
-        int c = 0; // count of common characters
-        int t = 0; // count of transpositions
-        int prevpos = -1;
-        for (int ix = 0; ix < s1.length(); ix++) {
-            char ch = s1.charAt(ix);
-
-            // now try to find it in s2
-            for (int ix2 = Math.max(0, ix - maxdist);
-                    ix2 < Math.min(s2.length(), ix + maxdist);
-                    ix2++) {
-                if (ch == s2.charAt(ix2)) {
-                    c++; // we found a common character
-                    if (prevpos != -1 && ix2 < prevpos) {
-                        t++; // moved back before earlier 
-                    }
-                    prevpos = ix2;
-                    break;
-                }
-            }
-        }
-
-    // we don't divide t by 2 because as far as we can tell, the above
-        // code counts transpositions directly.
-    // System.out.println("c: " + c);
-        // System.out.println("t: " + t);
-        // System.out.println("c/m: " + (c / (double) s1.length()));
-        // System.out.println("c/n: " + (c / (double) s2.length()));
-        // System.out.println("(c-t)/c: " + ((c - t) / (double) c));
-        // we might have to give up right here
-        if (c == 0) {
-            return 0.0;
-        }
-
-        // first compute the score
-        double score = ((c / (double) s1.length())
-                + (c / (double) s2.length())
-                + ((c - t) / (double) c)) / 3.0;
-
-        // (2) common prefix modification
-        int p = 0; // length of prefix
-        int last = Math.min(4, s1.length());
-        for (; p < last && s1.charAt(p) == s2.charAt(p); p++)
-      ;
-
-        score = score + ((p * (1 - score)) / 10);
-
-    // (3) longer string adjustment
-        // I'm confused about this part. Winkler's original source code includes
-        // it, and Yancey's 2005 paper describes it. However, Winkler's list of
-        // test cases in his 2006 paper does not include this modification. So
-        // is this part of Jaro-Winkler, or is it not? Hard to say.
-        //
-        //   if (s1.length() >= 5 && // both strings at least 5 characters long
-        //       c - p >= 2 && // at least two common characters besides prefix
-        //       c - p >= ((s1.length() - p) / 2)) // fairly rich in common chars
-        //     {
-        //     System.out.println("ADJUSTED!");
-        //     score = score + ((1 - score) * ((c - (p + 1)) /
-        //                                     ((double) ((s1.length() + s2.length())
-        //                                                - (2 * (p - 1))))));
-        // }
-    // (4) similar characters adjustment
-        // the same holds for this as for (3) above.
-        return score;
-    }
-
+    
 }
