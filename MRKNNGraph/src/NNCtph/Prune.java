@@ -54,13 +54,11 @@ public class Prune extends Configured implements Tool {
             k = Integer.valueOf(args[2]);
         }
         
-        return process();
+        return process(getConf());
     }
     
-    public int process() throws Exception  {
-        // Configuration processed by ToolRunner
-        Configuration conf = getConf();
-
+    public int process(Configuration conf) throws Exception  {
+        
         // Create a Job using the processed conf
         Job job = new Job(conf, this.getClass().getName());
         job.setJarByClass(this.getClass());

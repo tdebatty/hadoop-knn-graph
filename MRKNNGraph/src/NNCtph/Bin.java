@@ -37,6 +37,12 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class Bin extends Configured implements Tool {
     public static final String KEY_SIMILARITY = "Bin.Reducer.Similarity";
+    public static final String KEY_PARSER = "Bin.Mapper.Parser";
+    
+    public StringParser string_parser;
+    public SimilarityCalculator similarity_calculator;
+    public String in;
+    public String out;
 
     public static void main(String[] args) {
         try {
@@ -50,21 +56,28 @@ public class Bin extends Configured implements Tool {
         
     @Override
     public int run(String[] args) throws Exception {
+        in = args[0];
+        out = args[1];
+        
+        string_parser = new DefaultStringParser();
+        similarity_calculator = new DefaultSimilarityCalculator();
+        
         // Configuration processed by ToolRunner
-        Configuration conf = getConf();
+        return process(getConf());
+        
+    }
+    
+    public int process(Configuration conf) throws Exception {
 
         // Create a Job using the processed conf
         Job job = new Job(conf, this.getClass().getName());
         job.setJarByClass(Bin.class);
 
         job.setInputFormatClass(TextInputFormat.class);
-        TextInputFormat.addInputPaths(job, args[0]);
+        TextInputFormat.addInputPaths(job, in);
         
-        StringParser sp = new Parser();
-        job.getConfiguration().set("Bin.Mapper.Parser", toString(sp));
-        
-        SimilarityCalculator sc = new JWNodeSimilarity();
-        job.getConfiguration().set(KEY_SIMILARITY, toString(sc));
+        job.getConfiguration().set(KEY_PARSER, toString(string_parser));
+        job.getConfiguration().set(KEY_SIMILARITY, toString(similarity_calculator));
         
         job.setMapperClass(BinMapper.class);
         job.setMapOutputKeyClass(Text.class);
@@ -75,7 +88,7 @@ public class Bin extends Configured implements Tool {
         job.setOutputValueClass(Text.class);
         
         job.setOutputFormatClass(TextOutputFormat.class);
-        TextOutputFormat.setOutputPath(job, new Path(args[1]));
+        TextOutputFormat.setOutputPath(job, new Path(out));
         
         return job.waitForCompletion(true) ? 0 : 1;
     }
@@ -110,19 +123,6 @@ public class Bin extends Configured implements Tool {
     }
 }
 
-class Parser implements StringParser {
-
-    @Override
-    public Node parse(String s) {
-        String[] pieces = s.split("\"", 4);
-        Node n = new Node();
-        n.id = pieces[1];
-        n.value = pieces[3];
-        return n;
-
-    }
-}
-
 class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
 
     SpamSum ss;
@@ -138,7 +138,7 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
         return_key = new Text();
         
         try {
-            sp = (StringParser) Bin.fromString(context.getConfiguration().get("Bin.Mapper.Parser"));
+            sp = (StringParser) Bin.fromString(context.getConfiguration().get(Bin.KEY_PARSER));
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(BinMapper.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -166,8 +166,6 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
             System.err.println("Failed to parse " + s);
         }
     }
-    
-    
 }
 
 class BinReducer extends Reducer<Text, Node, NullWritable, Text> {
@@ -204,13 +202,4 @@ class BinReducer extends Reducer<Text, Node, NullWritable, Text> {
             nodes.add(new Node(n));
         }
     }
-}
-
-class JWNodeSimilarity implements SimilarityCalculator {
-
-    @Override
-    public double similarity(Node n1, Node n2) {
-        return JaroWinkler.Similarity(n1.value, n2.value);
-    }
-    
 }
