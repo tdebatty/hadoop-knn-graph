@@ -3,8 +3,6 @@ package NNCtph;
 import MRKNNGraph.Edge;
 import MRKNNGraph.Node;
 
-import info.debatty.stringsimilarity.JaroWinkler;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -152,7 +150,6 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
         try {
             n = sp.parse(s);
 
-            //ss = new SpamSum();
             ss.HashString(n.value);
             //System.out.println(ss.Left().substring(1, 2));
             
@@ -162,8 +159,9 @@ class BinMapper  extends Mapper<LongWritable, Text, Text, Node> {
             return_key.set("1" + ss.Left().substring(1, 2));
             context.write(return_key, n);
             
-        } catch (IOException | InterruptedException ex) {
+        } catch (Exception ex) {
             System.err.println("Failed to parse " + s);
+            context.getCounter("NNCtph.Bin", "Failed lines").increment(1);
         }
     }
 }

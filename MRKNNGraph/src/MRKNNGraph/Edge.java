@@ -12,7 +12,9 @@ import org.apache.hadoop.io.Writable;
 public class Edge implements Writable, Comparable<Edge>{
     public Node n1;
     public Node n2;
-    public double similarity;
+    public double similarity = 0;
+    
+    public static final String SEPARATOR = ";";
     
     public Edge() {
         
@@ -32,8 +34,19 @@ public class Edge implements Writable, Comparable<Edge>{
     
     @Override
     public String toString() {
-        return n1.id + ";" + n2.id + ";" + similarity;
+        return n1.id + SEPARATOR + n2.id + SEPARATOR + similarity;
         
+    }
+    
+    public static Edge parseString(String line) {
+        String[] values = line.split(SEPARATOR);
+        
+        Edge e = new Edge();
+        e.n1 = new Node(values[0]);
+        e.n2 = new Node(values[1]);
+        e.similarity = Double.valueOf(values[2]);
+        
+        return e;
     }
 
     @Override
