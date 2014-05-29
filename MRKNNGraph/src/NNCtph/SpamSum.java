@@ -6,16 +6,23 @@ package NNCtph;
  */
 public class SpamSum {
 
-    protected static final int SPAMSUM_LENGTH = 2;
     protected static final int MIN_BLOCKSIZE = 3;
     protected static final long HASH_PRIME = 0x01000193;
     protected static final long HASH_INIT = 0x28021967;
-
     protected static final char[] B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
 
-    public int blocksize;
+    protected int SPAMSUM_LENGTH = 2;
+    protected int blocksize;
     protected char[] left;
     protected char[] right;
+    
+    public SpamSum(int length) {
+        SPAMSUM_LENGTH = length;
+    }
+    
+    public SpamSum() {
+        
+    }
 
     public String HashString(String string) {
         return HashString(string, 0);
