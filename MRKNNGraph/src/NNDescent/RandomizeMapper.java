@@ -35,12 +35,18 @@ public class RandomizeMapper
         @Override
         protected void map(LongWritable key, Text value, Mapper.Context context)
                 throws IOException, InterruptedException {
-            Node node = sp.parse(value.toString());
             
-            for (int i = 0; i < K; i++) {
+            try {
+                Node node = sp.parse(value.toString());
+                
+                for (int i = 0; i < K; i++) {
                 context.write(
                         new LongWritable(rnd.nextInt(reduce_tasks)), 
                         node);
+                }
+            } catch (Exception ex) {
+                System.out.println("Could not parse " + value.toString());
+                context.getCounter("NNDescent", "Failed parsing lines").increment(1);
             }
             
         }

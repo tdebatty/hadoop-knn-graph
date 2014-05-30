@@ -76,7 +76,11 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
         String[] values = string.split(DELIMITER);
         NeighborList nl = new NeighborList();
         for (String s : values) {
-            nl.add(Neighbor.parseString(s));
+            try {
+                nl.add(Neighbor.parseString(s));
+            } catch (Exception ex) {
+                System.out.println("Failed to parse " + string);
+            }
         }
         return nl;
     }

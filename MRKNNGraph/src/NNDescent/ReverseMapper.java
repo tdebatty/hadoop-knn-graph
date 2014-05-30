@@ -16,15 +16,20 @@ class ReverseMapper extends Mapper<LongWritable, Text, Node, Neighbor> {
     protected void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException {
         
-        // Input should look like
-        // Node tab NeighborList
-        String[] input = value.toString().split("\t", 2);
-        Node n = Node.parseString(input[0]);
-        NeighborList nl = NeighborList.parseString(input[1]);
-        
-        for (Neighbor neighbor : nl) {
-            context.write(n, neighbor);
-            context.write(neighbor.node, new Neighbor(n, neighbor.similarity));
+        try {
+            // Input should look like
+            // Node tab NeighborList
+            String[] input = value.toString().split("\t", 2);
+            Node n = Node.parseString(input[0]);
+            NeighborList nl = NeighborList.parseString(input[1]);
+
+            for (Neighbor neighbor : nl) {
+                context.write(n, neighbor);
+                context.write(neighbor.node, new Neighbor(n, neighbor.similarity));
+            }
+        } catch (Exception ex) {
+            System.out.println("Failed to parse " + value.toString());
+            context.getCounter("NNDescent", "Failed parsing").increment(1);
         }
     }
     

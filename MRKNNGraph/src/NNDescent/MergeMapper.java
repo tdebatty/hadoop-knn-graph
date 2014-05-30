@@ -16,12 +16,17 @@ class MergeMapper extends Mapper<LongWritable, Text, Node, Neighbor> {
     protected void map(LongWritable key, Text value, Mapper.Context context)
             throws IOException, InterruptedException {
         
-        // Input should look like
-        // Node tab Neighbor
-        String[] input = value.toString().split("\t", 2);
-        Node n = Node.parseString(input[0]);
-        Neighbor neighbor = Neighbor.parseString(input[1]);
-        context.write(n, neighbor);
+        try {
+            // Input should look like
+            // Node tab Neighbor
+            String[] input = value.toString().split("\t", 2);
+            Node n = Node.parseString(input[0]);
+            Neighbor neighbor = Neighbor.parseString(input[1]);
+            context.write(n, neighbor);
+        } catch (Exception ex) {
+            System.out.println("Could not parse : " + value.toString());
+            context.getCounter("NNDescent", "Failed parsing").increment(1);
+        }
 
     }
     

@@ -42,7 +42,7 @@ class FilterMapper extends Mapper<LongWritable, Text, Node, NeighborList> {
                 nl.add(new Neighbor(other_node, Similarity(node.value, other_node.value)));
             }
             
-            System.out.println("Node " + node.id + " has " + nl.size() + " candidate neighbors");
+            //System.out.println("Node " + node.id + " has " + nl.size() + " candidate neighbors");
             context.write(node, nl);
         }
         

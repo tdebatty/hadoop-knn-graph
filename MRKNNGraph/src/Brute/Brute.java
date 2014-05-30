@@ -1,7 +1,6 @@
 package Brute;
 
 import MRKNNGraph.Node;
-import NNDescent.Neighbor;
 import NNDescent.NeighborList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,10 +73,5 @@ public class Brute extends Configured implements Tool
         System.out.println("Running time: " + (System.currentTimeMillis() - start) / 1000 + " sec");
         
         return return_value;
-        
     }
-    
-    
-
-    
 }

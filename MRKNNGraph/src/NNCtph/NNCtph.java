@@ -41,6 +41,7 @@ public class NNCtph extends Configured implements Tool {
     public static final String KEY_PARSER = "NNCTPH.Parser";
     public static final String KEY_K = "NNCTPH.k";
     public static final String KEY_STAGES = "NNCTPH.Stages";
+    public static final String KEY_LENGTH = "NNCTPH.key-length";
 
     /**
      * @param args the command line arguments
@@ -58,7 +59,9 @@ public class NNCtph extends Configured implements Tool {
     public String in = "";
     public String out = "";
     public int k = 10;
-    private int stages = 2;
+    public int stages = 2;
+    public int key_length = 2; // characters (1 => 64 bins, 2 => 4096 bins)
+    
     
     public SimilarityCalculator similarity_calculator;
     public StringParser string_parser;
@@ -96,6 +99,8 @@ public class NNCtph extends Configured implements Tool {
         System.out.println("Out:    " + out);
         System.out.println("k:      " + k);
         System.out.println("Stages: " + stages);
+        System.out.println("Key length: " + key_length);
+        System.out.println("=> # bins: " + Math.pow(64, key_length));
         System.out.println("String parser: " + string_parser.getClass().getName());
         System.out.println("Similarity metric: " + similarity_calculator.getClass().getName());
         
@@ -119,6 +124,7 @@ public class NNCtph extends Configured implements Tool {
         job.getConfiguration().set(KEY_SIMILARITY, toString(similarity_calculator));
         job.getConfiguration().setInt(KEY_K, k);
         job.getConfiguration().setInt(KEY_STAGES, stages);
+        job.getConfiguration().setInt(KEY_LENGTH, key_length);
         
         job.setMapperClass(NNCTPHMapper.class);
         job.setMapOutputKeyClass(Text.class);
@@ -193,21 +199,25 @@ class NNCTPHMapper extends Mapper<LongWritable, Text, Text, Node> {
     Text return_key;
     
     StringParser sp;
-    int stages = -1;
+    int stages = 0;
+    private int key_length = 0;
     
     @Override
     protected void setup(Mapper.Context context) throws IOException, InterruptedException {
-        ss = new SpamSum();
+        
         n = new Node();
         return_key = new Text();
         
         try {
             sp = (StringParser) NNCtph.fromString(context.getConfiguration().get(NNCtph.KEY_PARSER));
             stages = context.getConfiguration().getInt(NNCtph.KEY_STAGES, stages);
+            key_length = context.getConfiguration().getInt(NNCtph.KEY_LENGTH, key_length);
             
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(NNCTPHMapper.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        ss = new SpamSum(stages * key_length);
     }
     
     @Override
@@ -222,14 +232,14 @@ class NNCTPHMapper extends Mapper<LongWritable, Text, Text, Node> {
             //System.out.println(ss.Left().substring(1, 2));
             
             for (int i = 0; i < stages; i++) {
-                return_key.set(i + "_" + ss.Left().substring(i, i+1));
+                return_key.set(i + "_" + ss.Left().substring(i*key_length, (i+1)*key_length));
                 context.write(return_key, n);
             }
             
             
         } catch (Exception ex) {
             System.err.println("Failed to parse " + s);
-            context.getCounter("NNCtph.Bin", "Failed lines").increment(1);
+            context.getCounter("NNCTPH", "# failed parsing").increment(1);
         }
     }
 }
@@ -274,9 +284,12 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
         ArrayList<Double> similarities = new ArrayList<>();
         
         for (Node n : values) {
+            context.progress();
+            
             for (int i = 0; i < nodes.size(); i++) {
                 similarities.add(
                         sc.similarity(n, nodes.get(i)));
+                context.getCounter("NNCTPH", "# similarities").increment(1);
                 
             }
             
@@ -305,9 +318,12 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
         double similarity;
         // For each node, find the k nearest neighbors
         for (int i = 0; i < nodes.size(); i++) {
+            
             Node n = nodes.get(i);
             PriorityQueue<Edge> edges = new PriorityQueue<>(this_k);
             for (int j = 0; j < nodes.size(); j++) {
+                context.progress();
+                
                 if (i == j) {
                     continue;
                     

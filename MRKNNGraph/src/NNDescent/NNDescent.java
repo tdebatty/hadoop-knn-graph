@@ -53,15 +53,20 @@ public class NNDescent extends Configured implements Tool
         Randomize();
         Merge();
         
-        System.out.println("Running time: " + (System.currentTimeMillis() - start)/1000);
+        System.out.println("Running time: " + (System.currentTimeMillis() - start)/1000 + " sec");
         
         while (true) {
             iteration++;
             System.out.println("Iteration : " + iteration);
             System.out.println("---------------");
             
-            Reverse();
-            Filter();
+            if (!Reverse()) {
+                return 1;
+            }
+            
+            if (!Filter()) {
+                return 1;
+            }
             
             System.out.println("Running time: " + (System.currentTimeMillis() - start)/1000 + " sec");
             
@@ -75,7 +80,14 @@ public class NNDescent extends Configured implements Tool
 
     
     
-    protected int Filter() throws IOException, InterruptedException, ClassNotFoundException {
+    /**
+     * 
+     * @return true is job succeeds
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws ClassNotFoundException 
+     */
+    protected boolean Filter() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println("Filter...");
         Configuration conf = getConf();
         Job job = new Job(conf, this.getClass().getName());
@@ -95,10 +107,17 @@ public class NNDescent extends Configured implements Tool
         job.setOutputFormatClass(TextOutputFormat.class);
         TextOutputFormat.setOutputPath(job, new Path(out + "-" + iteration + "-filter"));
         
-        return job.waitForCompletion(true) ? 0 : 1;
+        return job.waitForCompletion(true);
     }
     
-    protected int Reverse() throws IOException, InterruptedException, ClassNotFoundException {
+    /**
+     * 
+     * @return true if job succeeds
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws ClassNotFoundException 
+     */
+    protected boolean Reverse() throws IOException, InterruptedException, ClassNotFoundException {
         System.out.println("Reverse...");
         Configuration conf = getConf();
         Job job = new Job(conf, this.getClass().getName());
@@ -119,7 +138,7 @@ public class NNDescent extends Configured implements Tool
         job.setOutputFormatClass(TextOutputFormat.class);
         TextOutputFormat.setOutputPath(job, new Path(out + "-" + iteration + "-reverse"));
         
-        return job.waitForCompletion(true) ? 0 : 1;
+        return job.waitForCompletion(true);
     }
 
     protected int Merge() throws IOException, InterruptedException, ClassNotFoundException {

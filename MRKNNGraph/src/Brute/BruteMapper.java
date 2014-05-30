@@ -35,8 +35,4 @@ class BruteMapper  extends Mapper<Text, Text, Node, NeighborList> {
         neighbors_list.add(new Neighbor(node2, similarity));
         context.write(node1, neighbors_list);
     }
-    
-    
-    
-    
 }
