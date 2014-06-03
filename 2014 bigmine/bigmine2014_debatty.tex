@@ -117,7 +117,7 @@ It has received a strong highlight these last years with the explosion of social
 
 As a consequence, a lot of algorithms have been developed, and implemented, to efficiently analyze this kind of data, either sequentially or in parallel. XXXXXXX add examples of graph algorithms connected components, clustering, ...
 
-In a lot of cases, the data to analyze is not formatted as a graph. Nevertheless, it can be interesting to convert the dataset into a graph, to be able to use these algorithms. In most cases (XXXXXXXXX add reference), the trick used is to build a k-nearest neighbors graph (k-NN graph), a graph where each node is connected to (has an edge to) its k nearest neighbors, according to a given similarity metric.
+In a lot of cases, we may have to analyze unstructured data, that is not formatted as a graph. Nevertheless, it can be interesting to convert the dataset into a graph, to be able to use these algorithms. In most cases (XXXXXXXXX add reference), the trick used is to build a k-nearest neighbors graph (k-NN graph), a graph where each node is connected to (has an edge to) its k nearest neighbors, according to a given similarity metric.
 
 \section{Related work}
 
@@ -130,17 +130,11 @@ But k-NN search is also a method used for classification and regression. In k-NN
 
 Different methods exist to find the nearest neighbor, or the k-nearest neighbors, of a point. The naive method, also called linear search, consists in computing the distance between the query point and every other point in the set, keeping track of the "best so far" (or k "best so far").
 
-Some techniques rely on the branch and bond algorithm, with some kind of index to partition the space $M$. For example, a k-d tree, that recursively partition the space into equally sized sub-spaces can be used to speedup search.
-
-XXXXXXX ref:  Andrew Moore. "An introductory tutorial on KD trees" and Lee, D. T.; Wong, C. K. (1977). "Worst-case analysis for region and partial region searches in multidimensional binary search trees and balanced quad trees". Acta Informatica 9 (1): 23–29. doi:10.1007/BF00263763.
-
-R-trees can also be used for euclidean spaces. In the case of metric spaces, vantage-point trees and BK-trees can be used.
+Some techniques rely on the branch and bond algorithm, with some kind of index to partition the space $M$. For example, a k-d tree, that recursively partition the space into equally sized sub-spaces can be used to speedup search, like in \cite{Moore1991}. R-trees can also be used for euclidean spaces. In the case of generic metric spaces, vantage-point trees and BK-trees can be used.
 
 XXXXXX add explanation and references!
 
-Finally, some techniques use locality-sensitive hashing (LSH).
-XXXXX ref:  A. Rajaraman and J. Ullman (2010). "Mining of Massive Datasets, Ch. 3.".
-LSH is originally a method used to perform probabilistic dimension reduction of high-dimensional data. The basic idea is to hash the input items so that similar items are mapped to the same buckets with high probability. At the opposite of conventional hash functions, such as those used in cryptography, in the case of LSH the goal is to maximize the probability of "collision" between similar items.
+Finally, some algorithms use Locality-Sensitive Hashing (LSH), like \cite{Rajaraman2010}. LSH is originally a method used to perform probabilistic dimension reduction of high-dimensional data. The basic idea is to hash the input items so that similar items are mapped to the same buckets with high probability. At the opposite of conventional hash functions, such as those used in cryptography, in the case of LSH the goal is to maximize the probability of "collision" between similar items.
 
 \subsection{k-NN graph building algorithms}
 
@@ -148,9 +142,20 @@ The most naive way to build a k-NN graph is of course using brute force to compu
 
 A more subtle way consists in iteratively using a nearest neighbor search algorithm, like the ones presented above, to find the neighbors of all nodes in the dataset.
 
-Lately, different algorithms have been proposed specifically to efficiently build an approximate k-NN graph from a dataset. Most of them will naturally share similarities with nearest neighbor search algorithms.
+Lately, different algorithms have been proposed specifically to efficiently build a k-NN graph from a dataset. Most of them will naturally share similarities with nearest neighbor search algorithms.
 
-XXXX add references to algorithms that uses indexes.
+In \cite{Paredes2006}, the authors propose two algorithms that first build an index of the dataset to reduce the number of distances that have to be computed:
+
+\begin{itemize}
+	\item A recursive partition based algorithm: In the first stage, the algorithm builds the index by performing a recursive partition of the space. In the second stage, it builds the k-nn graph by searching the k-nn of each node, using the order induced by the partitioning.
+	\item A pivot based algorithm: The algorithm first build a pivot index. Then, the k-nn graph is built by performing range-optimal queries improved with metric and graph considerations.
+\end{itemize}
+
+Both algorithms are not limited to euclidean space and support metric spaces. The authors tested the algorithms using text data and edit distance as measure of similarity.
+
+In \cite{Connor2009}, the authors present a distributed algorithm, but that requires a shared memory architecture to store a shared kd-tree based index.
+
+In a lot of cases, to achieve a higher speedup, the designed algorithms focus on building an approximate k-nn graph.
 
 A versatile algorithm to efficiently compute an approximate k-NN graph is described in \cite{Dong2011}. The algorithm, called NN-Descent, starts by creating edges between random nodes. Then, for each node, it computes the similarity between all neighbors of the current neighbors, to find better edges. The algorithm iterates until it cannot find better edges anymore. The main advantage of this algorithm is that it works with any similarity measure. Dong et al. experimentally found the computational cost is around $O(n^{1.14})$.
 
@@ -164,12 +169,24 @@ Similarly, in \cite{Zhang2013}, the authors use LSH to divide the dataset into s
 
 Furthermore, the authors propose a method to produce equally sized groups, thus alleviating the computational cost of skewed data. They first project the item's hash code on a random direction. Then they sort items by their projection values. Finally, they divide this sequence of items into equally sized buckets. By doing so, the items with same hash code will fall in the same bucket with a high probability.
 
-Finally, Zhang et al. show experimentally that their algorithm is much faster than existing algorithms, for similar quality of the built graph. But the main drawback of the algorithm is that LSH functions are defined only for some similarity measures: $l_p$, Mahalanobis distance, kernel similarity, and $\chi^2$ distance.
+Finally, Zhang et al. show experimentally that their algorithm is much faster than existing algorithms, for similar quality of the built graph.
 
+When it comes to building a k-nn graph from a big unstructured text dataset, none of the previous algorithms offers a efficient solution. Algorithms that rely on indexes are hard to implement in parallel on a distributed memory architecture like MapReduce. As LSH functions are defined only for some similarity measures ($l_p$, Mahalanobis distance, kernel similarity, and $\chi^2$ distance), the algorithms relying on LSH cannot be used when it comes to build a k-nn graph from text data using edit distance (Levenshtein distance) or any similar distance metric (weighted Levenshtein distance, Jaro-Winkler distance, Hamming distance) as a similarity measure.
+
+In the case of NNDescent, the MapReduce version of the algorithm requires two MR jobs per iteration, and multiple iterations to converge. Moreover, the algorithm requires to read and write a lot of data on disk between jobs. Although the sequential version of the algorithm proved to be very efficient, these constraints make it very inefficient when implemented in parallel. This will be confirmed during the experimental tests presented below.
 
 \section{NNCTPH}
 
 \subsection{Context Triggered Piecewise Hashing}
+Context Triggered Piecewise Hashing (CTPH), also called Fuzzy Hashing, was originally developed by Tridgell as a spam email detector called SpamSum \cite{SpamSum}. The algorithm is used to build a database of hashes of known spams. When a new email is received, its hash is computed, and compared with the spam database. If a similar hash is found, the incoming email is considered as spam, and discarded.
+
+The algorithm works by splitting a character string in chunks of variable length. The end point of a chunk is determined by a rolling hash. This rolling hash is based on the Adler-32 checksum used in zlib \cite{zlib} and uses a windows of 7 characters that slides over the input string. By using a rolling hash, the algorithm can perform auto resynchronisation if characters are inserted or deleted between two strings. If the value of the rolling hash matches a given value, the end of current chunk is found.
+
+Each chunk is hashed into a single character (out of 64). The block hash used is based on the Fowler/Noll/Vo (FNV) hash function \cite{FNV}.
+
+The final hash of the input string is the sequence of these segment hashes. In the original algorithm, the matching value for the rolling hashing is chosen in such a way that the produced hash has a length of 64 characters.
+
+Kornblum later implemented the algorithm under the name ssdeep \cite{ssdeep}. In \cite{Kornblum200691}, he uses the algorithm to identify almost identical files to support computer forensics.
 
 \section{Experimental evaluation}
 
