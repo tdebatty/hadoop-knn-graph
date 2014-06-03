@@ -30,19 +30,19 @@ class CartesianTextInputFormat extends FileInputFormat<Text, Text>{
 
     @Override
     public List<InputSplit> getSplits(JobContext job) throws IOException {
+        String left_input_path = job.getConfiguration().get(LEFT_INPUT_PATH);
+        String right_input_path = job.getConfiguration().get(RIGHT_INPUT_PATH);
+        
         ArrayList splits = new ArrayList<>();
         
         Job new_job = new Job(job.getConfiguration());
+        
         TextInputFormat tif = new TextInputFormat();
         
-        TextInputFormat.setInputPaths(
-                new_job,
-                job.getConfiguration().get(LEFT_INPUT_PATH));
+        TextInputFormat.setInputPaths(new_job, left_input_path);
         List<InputSplit> left_splits = tif.getSplits(new_job);
         
-        TextInputFormat.setInputPaths(
-                new_job,
-                job.getConfiguration().get(RIGHT_INPUT_PATH));
+        TextInputFormat.setInputPaths(new_job,right_input_path);
         List<InputSplit> right_splits = tif.getSplits(new_job);
         
         for (InputSplit left : left_splits) {
@@ -53,11 +53,11 @@ class CartesianTextInputFormat extends FileInputFormat<Text, Text>{
                     cis.add(right);
                     splits.add(cis);
                 } catch (IOException | InterruptedException ex) {
-                    
+                    System.out.println("Could not create composite split :(");
                 }
             }
         }
-        
+        System.out.println("Created " + splits.size() + " splits!");
         return splits;
     }
     

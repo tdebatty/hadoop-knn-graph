@@ -37,8 +37,10 @@ public class CompositeInputSplit extends InputSplit implements Writable {
     /**
      * Add an InputSplit to this collection.
      *
+     * @param s
      * @throws IOException If capacity was not specified during construction or
      * if capacity has been reached.
+     * @throws java.lang.InterruptedException
      */
     public void add(InputSplit s) throws IOException, InterruptedException {
         if (null == splits) {
@@ -53,6 +55,8 @@ public class CompositeInputSplit extends InputSplit implements Writable {
 
     /**
      * Get ith child InputSplit.
+     * @param i
+     * @return 
      */
     public InputSplit get(int i) {
         return splits[i];
@@ -60,13 +64,20 @@ public class CompositeInputSplit extends InputSplit implements Writable {
 
     /**
      * Return the aggregate length of all child InputSplits currently added.
+     * @return 
+     * @throws java.io.IOException
      */
+    @Override
     public long getLength() throws IOException {
         return totsize;
     }
 
     /**
      * Get the length of ith child InputSplit.
+     * @param i
+     * @return 
+     * @throws java.io.IOException 
+     * @throws java.lang.InterruptedException 
      */
     public long getLength(int i) throws IOException, InterruptedException {
         return splits[i].getLength();
@@ -74,9 +85,13 @@ public class CompositeInputSplit extends InputSplit implements Writable {
 
     /**
      * Collect a set of hosts from all child InputSplits.
+     * @return 
+     * @throws java.io.IOException
+     * @throws java.lang.InterruptedException
      */
+    @Override
     public String[] getLocations() throws IOException, InterruptedException {
-        HashSet<String> hosts = new HashSet<String>();
+        HashSet<String> hosts = new HashSet<>();
         for (InputSplit s : splits) {
             String[] hints = s.getLocations();
             if (hints != null && hints.length > 0) {
@@ -90,6 +105,10 @@ public class CompositeInputSplit extends InputSplit implements Writable {
 
     /**
      * getLocations from ith InputSplit.
+     * @param i
+     * @return 
+     * @throws java.io.IOException
+     * @throws java.lang.InterruptedException
      */
     public String[] getLocation(int i) throws IOException, InterruptedException {
         return splits[i].getLocations();
@@ -97,8 +116,10 @@ public class CompositeInputSplit extends InputSplit implements Writable {
 
     /**
      * Write splits in the following format.      {@code
-       * <count><class1><class2>...<classn><split1><split2>...<splitn>
+     * <count><class1><class2>...<classn><split1><split2>...<splitn>
      * }
+     * @param out
+     * @throws java.io.IOException
      */
     @Override
     public void write(DataOutput out) throws IOException {
@@ -108,8 +129,7 @@ public class CompositeInputSplit extends InputSplit implements Writable {
         }
         for (InputSplit s : splits) {
             SerializationFactory factory = new SerializationFactory(conf);
-            Serializer serializer
-                    = factory.getSerializer(s.getClass());
+            Serializer serializer = factory.getSerializer(s.getClass());
             serializer.open((DataOutputStream) out);
             serializer.serialize(s);
         }
@@ -118,6 +138,7 @@ public class CompositeInputSplit extends InputSplit implements Writable {
     /**
      * {@inheritDoc}
      *
+     * @param in
      * @throws IOException If the child InputSplit cannot be read, typically for
      * failing access checks.
      */

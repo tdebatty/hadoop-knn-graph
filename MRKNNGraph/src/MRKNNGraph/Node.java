@@ -3,6 +3,8 @@ package MRKNNGraph;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
@@ -10,7 +12,7 @@ import org.apache.hadoop.io.WritableComparable;
  * @author tibo
  */
 public class Node implements WritableComparable<Node> {
-    public String id = "";
+    public Text id = new Text("");
     public String value = "";
     
     public static final String DELIMITER = "___";
@@ -25,34 +27,34 @@ public class Node implements WritableComparable<Node> {
     }
     
     public Node(String id) {
-        this.id = id;
+        this.id = new Text(id);
     }
 
 
     @Override
     public void write(DataOutput d) throws IOException {
-        d.writeUTF(id);
+        id.write(d);
         d.writeUTF(value);
         
     }
 
     @Override
     public void readFields(DataInput di) throws IOException {
-        id = di.readUTF();
+        id.readFields(di);
         value = di.readUTF();
         
     }
 
     @Override
     public String toString() {
-        return id + DELIMITER + value;
+        return id.toString() + DELIMITER + value;
     }
     
     
     public static Node parseString(String string) {
         String[] values = string.split(DELIMITER, 2);
         Node n = new Node();
-        n.id = values[0];
+        n.id.set(values[0]);
         n.value = values[1];
         return n;
     }
@@ -70,6 +72,13 @@ public class Node implements WritableComparable<Node> {
         
         Node other_node = (Node) other;
         return other_node.id.equals(this.id);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 89 * hash + Objects.hashCode(this.id);
+        return hash;
     }
     
     

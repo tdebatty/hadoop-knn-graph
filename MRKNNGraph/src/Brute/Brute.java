@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
@@ -50,6 +51,10 @@ public class Brute extends Configured implements Tool
         Configuration conf = getConf();
         Job job = new Job(conf, this.getClass().getName());
         job.setJarByClass(this.getClass());
+        
+        // Reduce split size to 8MB to get more mappers!
+        //conf.setInt("mapred.max.split.size", 8388608);
+        //conf.setInt("mapreduce.input.fileinputformat.split.maxsize", 8388608);
         
         job.setInputFormatClass(CartesianTextInputFormat.class);
         CartesianTextInputFormat.setLeftInputhPath(job, in);

@@ -126,6 +126,9 @@ public class NNCtph extends Configured implements Tool {
         job.getConfiguration().setInt(KEY_STAGES, stages);
         job.getConfiguration().setInt(KEY_LENGTH, key_length);
         
+        // !!!!!! Give 4GB per task !!!!!!! //
+        job.getConfiguration().set("mapred.child.java.opts", "-Xmx4096m");
+        
         job.setMapperClass(NNCTPHMapper.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Node.class);
@@ -176,7 +179,7 @@ public class NNCtph extends Configured implements Tool {
         public Node parse(String s) {
             String[] pieces = s.split("\"", 4);
             Node n = new Node();
-            n.id = pieces[1];
+            n.id.set(pieces[1]);
             n.value = pieces[3];
             return n;
         }

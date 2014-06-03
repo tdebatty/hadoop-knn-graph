@@ -25,14 +25,19 @@ class BruteMapper  extends Mapper<Text, Text, Node, NeighborList> {
 
     @Override
     protected void map(Text key, Text value, Context context) throws IOException, InterruptedException {
-        //System.out.println(key.toString());
-        Node node1 = sp.parse(key.toString());
-        Node node2 = sp.parse(value.toString());
-        
+        Node node1, node2;
+        try {
+            node1 = sp.parse(key.toString());
+            node2 = sp.parse(value.toString());
+        } catch (Exception ex) {
+            return;
+        }
+
         NeighborList neighbors_list = new NeighborList();
-        context.getCounter("Brute force KNN graph builder", "Similarities").increment(1);
+        context.getCounter("BRUTE", "Similarities").increment(1);
         double similarity = Similarity(node1.value, node2.value);
         neighbors_list.add(new Neighbor(node2, similarity));
         context.write(node1, neighbors_list);
+        
     }
 }

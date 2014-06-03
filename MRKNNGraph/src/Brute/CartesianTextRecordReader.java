@@ -19,7 +19,6 @@ class CartesianTextRecordReader extends RecordReader<Text, Text> {
     RecordReader<LongWritable, Text> left_record_reader;
     RecordReader<LongWritable, Text> right_record_reader;
 
-
     @Override
     public void initialize(InputSplit is, TaskAttemptContext context) throws IOException, InterruptedException {
         this.input_split = (CompositeInputSplit) is;
@@ -33,7 +32,7 @@ class CartesianTextRecordReader extends RecordReader<Text, Text> {
         right_record_reader = text_input_format.createRecordReader(input_split.get(1), context);
         right_record_reader.initialize(input_split.get(1), context);
         
-        System.out.println(left_record_reader.getCurrentValue().toString());
+        //System.out.println(left_record_reader.getCurrentValue().toString());
         
     }
 
@@ -46,17 +45,17 @@ class CartesianTextRecordReader extends RecordReader<Text, Text> {
             
         // Right reader is at the end => try to move left reader
         if (!left_record_reader.nextKeyValue()) {
-            
             // Left is also at the end 
             return false;
         }
 
         // Reset right record reader
+        // System.out.println(left_record_reader.getProgress());
+        right_record_reader.close();
         TextInputFormat text_input_format = new TextInputFormat();
         right_record_reader = text_input_format.createRecordReader(input_split.get(1), context);
         right_record_reader.initialize(input_split.get(1), context);
         right_record_reader.nextKeyValue();
-
         return true;
         
     }

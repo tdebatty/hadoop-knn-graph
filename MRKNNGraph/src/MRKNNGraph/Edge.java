@@ -51,8 +51,8 @@ public class Edge implements Writable, Comparable<Edge>{
 
     @Override
     public void write(DataOutput d) throws IOException {
-        d.writeUTF(n1.id);
-        d.writeUTF(n2.id);
+        n1.id.write(d);
+        n2.id.write(d);
         d.writeDouble(similarity);
         
     }
