@@ -32,6 +32,10 @@ class BruteMapper  extends Mapper<Text, Text, Node, NeighborList> {
         } catch (Exception ex) {
             return;
         }
+        
+        if (node1.equals(node2)) {
+            return;
+        }
 
         NeighborList neighbors_list = new NeighborList();
         context.getCounter("BRUTE", "Similarities").increment(1);

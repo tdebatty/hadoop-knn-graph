@@ -21,9 +21,15 @@ public class Node implements WritableComparable<Node> {
         
     }
 
-    public Node(Node n) {
-        this.id = n.id;
-        this.value = n.value;
+    /**
+     * Constructor creates a deep copy of Node other
+     * 
+     * @param other 
+     */
+    public Node(Node other) {
+        // Create a copy of the Text object
+        this.id = new Text(other.id.toString());
+        this.value = other.value;
     }
     
     public Node(String id) {
