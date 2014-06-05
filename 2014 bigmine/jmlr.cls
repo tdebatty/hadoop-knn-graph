@@ -124,7 +124,7 @@
 \RequirePackage{graphicx}
 \RequirePackage{url}
 \RequirePackage[x11names]{xcolor}
-\RequirePackage[algo2e,ruled]{algorithm2e}
+%\RequirePackage[algo2e,ruled]{algorithm2e}
 \jmlrprehyperref
 \@ifundefined{@pre@hyperref}{}{\@pre@hyperref}
 \usepackage{hyperref}
@@ -700,18 +700,21 @@ Keywords:} \ignorespaces}%
       \fi
     \endgroup}
 \fi
-\newenvironment{algorithm}[1][htbp]%
-{%
-  \begin{algocf}[#1]%
-  \renewcommand\@makecaption[2]{%
-    \hskip\AlCapHSkip
-    \parbox[t]{\hsize}{\algocf@captiontext{##1}{##2}}%
-  }%
-}%
-{%
-  \end{algocf}%
-}
-\setlength\algomargin{0pt}
+
+%\newenvironment{algorithm}[1][htbp]%
+%{%
+%  \begin{algocf}[#1]%
+%  \renewcommand\@makecaption[2]{%
+%    \hskip\AlCapHSkip
+%    \parbox[t]{\hsize}{\algocf@captiontext{##1}{##2}}%
+%  }%
+%}%
+%{%
+%  \end{algocf}%
+%}
+
+
+%\setlength\algomargin{0pt}
 \newcommand{\artappendix}{\par
   \setcounter{section}{0}
   \setcounter{subsection}{0}
