@@ -101,6 +101,10 @@ class Edge2NLReducer extends Reducer<Node, Neighbor, Node, NeighborList> {
              nl.add(new Neighbor(n));
          }
          
+         for (Neighbor n : nl) {
+             context.getCounter("Edge2NL", "Total similarity (/1000)").increment((long) (n.similarity * 1000));
+         }
+         
          context.write(key, nl);
     
     }

@@ -23,6 +23,19 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
         neighbors = new PriorityQueue<>();
     }
 
+    /**
+     *
+     * @param other
+     */
+    public NeighborList(NeighborList other) {
+        super(Neighbor.class);
+        this.neighbors = new PriorityQueue<Neighbor>();
+        for (Neighbor n : other.neighbors) {
+            // create a copy of each neighbor in the other neighbor's list
+            this.neighbors.add(new Neighbor(n));
+        }
+    }
+
     public void add(Neighbor neighbor) {
         if (neighbors.contains(neighbor)) {
             return;
@@ -100,7 +113,7 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
     
     public int CountCommons(NeighborList other) {
         int count = 0;
-        for (Neighbor n : this) {
+        for (Neighbor n : this.neighbors) {
             if (other.contains(n)) {
                 count++;
             }

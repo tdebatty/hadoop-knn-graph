@@ -87,7 +87,7 @@ class CompareNLMapper extends Mapper<LongWritable, Text, Node, NeighborList>{
             context.write(n, neighbors_list);
         } catch (Exception ex) {
             Logger.getLogger(this.getClass().getName()).warning("Failed to parse " + value.toString());
-            context.getCounter("CompareNLMapper", "Failed parsing").increment(1);
+            context.getCounter("Compare", "Failed parsing").increment(1);
         }
         
     }
@@ -101,10 +101,12 @@ class CompareNLReducer extends Reducer<Node, NeighborList, NullWritable, NullWri
         
         // Will receive 2 NeigborLists
         try {
-            NeighborList nl1 = values.iterator().next();
-            NeighborList nl2 = values.iterator().next();
-        
-            context.getCounter("CompareNLReducer", "Count Commons").increment(nl1.CountCommons(nl2));
+            // Make a copy of lists!!
+            NeighborList nl1 = new NeighborList(values.iterator().next());
+            NeighborList nl2 = new NeighborList(values.iterator().next());
+            int count = nl1.CountCommons(nl2);
+            context.getCounter("CompareNLReducer", "Count Commons").increment(count);
+            System.out.println(key.id.toString() + " : " + count);
         } catch (Exception ex) {
             context.getCounter("CompareNLReducer", "# Node has less than 2 NeighborLists").increment(1);
         }

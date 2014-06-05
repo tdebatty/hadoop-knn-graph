@@ -12,12 +12,14 @@ public class SpamSum {
     protected static final char[] B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
 
     protected int SPAMSUM_LENGTH = 2;
+    protected int CHARACTERS = 64;
     protected int blocksize;
     protected char[] left;
     protected char[] right;
     
-    public SpamSum(int length) {
+    public SpamSum(int length, int characters) {
         SPAMSUM_LENGTH = length;
+        CHARACTERS = characters;
     }
     
     public SpamSum() {
@@ -80,7 +82,7 @@ public class SpamSum {
                      * reset polong and this one
                      */
                     
-                    left[j] = B64[(int) (h2 % 64)];
+                    left[j] = B64[(int) (h2 % CHARACTERS)];
                     if (j < SPAMSUM_LENGTH - 1) {
 
                         /* we can have a problem with the tail overflowing. The easiest way
@@ -98,7 +100,7 @@ public class SpamSum {
                  * in the string near a block size boundary is greatly reduced.
                  */
                 if (h % (blocksize * 2) == ((blocksize * 2) - 1)) {
-                    right[k] = B64[(int) (h3 % 64)];
+                    right[k] = B64[(int) (h3 % CHARACTERS)];
                     if (k < SPAMSUM_LENGTH / 2 - 1) {
                         h3 = HASH_INIT;
                         k++;
@@ -110,8 +112,8 @@ public class SpamSum {
              * last part of the string is always considered
              */
             if (h != 0) {
-                left[j] = B64[(int) (h2 % 64)];
-                right[k] = B64[(int) (h3 % 64)];
+                left[j] = B64[(int) (h2 % CHARACTERS)];
+                right[k] = B64[(int) (h3 % CHARACTERS)];
             }
 
             /* Our blocksize guess may have been way off - repeat if necessary
