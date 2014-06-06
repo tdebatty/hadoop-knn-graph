@@ -109,11 +109,11 @@
 \maketitle
 
 \begin{abstract}
-This is the abstract for this article.
+In this paper we propose NNCTPH, a MapReduce algorithm that builds an approximate $k$-NN graph from large text datasets. The algorithm uses a modified version of Context Triggered Piecewise Hashing to bin the input data into buckets, and uses brute-force inside the buckets to build the graph. It also uses multiple stages to join the different unconnected subgraphs. We experimentally test the algorithm on different datasets consisting of the subject of spam emails.  Although the algorithm is still at an early development stage, it already proves to be four times faster than a MapReduce implementation of NNDescent, for the same quality of produced graph.
 \end{abstract}
 
 \begin{keywords}
-List of keywords
+$k$-NN graph, graph building, MapReduce, text data, Context-Triggered Piecewise Hashing
 \end{keywords}
 
 \section{Introduction}
@@ -121,7 +121,9 @@ A graph is a mathematical structure used to represent relations between objects.
 
 As a consequence, a lot of research has been devoted to efficiently analyze this kind of data, either sequentially or in parallel, like in \cite{Rajaraman2010b}, \cite{Liben2005}, \cite{Broder:2000:GSW:347319.346290} or \cite{Scott:2011:SHS:2392673}.
 
-In a lot of cases, we may have to analyze unstructured data, that is not formatted as a graph. Nevertheless, it can be interesting to convert the dataset into a graph, to be able to use these algorithms. In most cases (XXXXXXXXX add reference), the trick used is to build a k-nearest neighbors graph ($k$-NN graph), where each node is connected to (has an edge to) its $k$ nearest neighbors, according to a given similarity metric.
+In a lot of cases however, we may wish to analyze unstructured data, that is not formatted as a graph. Nevertheless, it can be interesting to convert the dataset into a graph, to be able to use these algorithms. In most cases, the trick used is to build a k-nearest neighbors graph ($k$-NN graph), where each node is connected to (has an edge to) its $k$ nearest neighbors, according to a given similarity metric.
+
+Another possibility would be to create an $\epsilon$-NN graph, a graph where an edge exists between two nodes if their distance is less than a pre-defined threshold $\epsilon$. However, it has been shown in \cite{Belkin:2003:LED:795523.795528} that $\epsilon$-NN graphs easily result in disconnected components. Moreover, it is usually difficult to find a good value of $\epsilon$ which yields graphs with an appropriate number of edges \cite{Chen2009}. From a practical point of view, it is more efficient to build a $k$-NN graph and afterward filter the graph with different values of $\epsilon$. Hence most of the research on graph building currently focus on $k$-NN graphs.
 
 \section{Related work}
 
@@ -135,8 +137,6 @@ But $k$-NN search is also a method used for classification and regression. In $k
 Different methods exist to find the nearest neighbor, or the k-nearest neighbors, of a point. The naive method, also called linear search, consists in computing the distance between the query point and every other point in the set, keeping track of the "best so far" (or $k$ "best so far").
 
 Some techniques rely on the branch and bond algorithm, with some kind of index to partition the space $M$. For example, a k-d tree, that recursively partition the space into equally sized sub-spaces can be used to speedup search, like in \cite{Moore1991}. R-trees can also be used for euclidean spaces. In the case of generic metric spaces, vantage-point trees and BK-trees can be used.
-
-XXXXXX add explanation and references!
 
 Finally, some algorithms use Locality-Sensitive Hashing (LSH), like \cite{Rajaraman2010}. LSH is originally a method used to perform probabilistic dimension reduction of high-dimensional data. The basic idea is to hash the input items so that similar items are mapped to the same buckets with high probability. At the opposite of conventional hash functions, such as those used in cryptography, in the case of LSH the goal is to maximize the probability of "collision" between similar items.
 
@@ -197,7 +197,7 @@ Fuzzy hashing is also known under the name ssdeep \cite{ssdeep}, which is the na
 
 \subsection{NNCTPH}
 
-We propose here to use CTPH to build a $k$-NN graph from text data using MapReduce. The algorithm, called NNCTPH, is presented in Algorithms \~ref{algo-nnctph-map} and \~ref{algo-nnctph-reduce}. It requires a single MapReduce job. In the map phase, the algorithm uses CTPH to produce a hash of each input string. This hash value is then used to bin the string into a bucket. Each reduce task uses brute-force to compute pairwise similarities between all strings of a single bucket, and for each node emits the $k$ edges with the highest similarity.
+We propose here to use CTPH to build a $k$-NN graph from text data using MapReduce. The algorithm, called NNCTPH, is presented in Algorithms~\ref{algo-nnctph-map} and~\ref{algo-nnctph-reduce}. It requires a single MapReduce job. In the map phase, the algorithm uses CTPH to produce a hash of each input string. This hash value is then used to bin the string into a bucket. Each reduce task uses brute-force to compute pairwise similarities between all strings of a single bucket, and for each node emits the $k$ edges with the highest similarity.
 
 \begin{algorithm}
 \caption{NNCTPH Map}
@@ -245,11 +245,11 @@ To control the number of buckets, and hence the average number of nodes per buck
 	\item use only a subset of letters in the hash, instead of the 64 original letters.
 \end{itemize}
 
-For example, by using a hash of two characters with ten possible letters, we create 100 buckets. The number of buckets will have an influence on the average number of nodes per bucket, but also on the parallelism of the algorithm, and hence on the processing time and on the quality of the final graph.
+For example, by using a hash of two characters with ten possible letters ("A" to "J"), we create 100 buckets. The number of buckets will have an influence on the average number of nodes per bucket, but also on the parallelism of the algorithm, and hence on the processing time and on the quality of the final graph.
 
 Doing this, we would end up with a series of unconnected subgraphs, as no edges are created between the nodes of different buckets. To avoid this and reconnect the graph, in the map phase we create a longer hash (using a coefficient we call \texttt{stages}) and emit the input string once for each subpart of the hash. Then, each reducer emits $stages/k$ edges for each string. For more clarity, the hash returned by our CTPH funcion is an array of $stages$ elements.
 
-For example, to create 100 buckets and two stages, our CTPH function produces a hash of four characters, using ten letters. The returned value is an array of two strings, each consisting of two characters. If the hash of an input string is "ABCD", the returned value is an array "AB", "CD", and the original string will be emitted twice by the mapper: once for "AB", and once for "CD".
+For example, to create 100 buckets and two stages, our CTPH function produces a hash of four characters, using ten letters. The returned value is an array of two strings, each consisting of two characters. If the hash of an input string is "ABCD", the returned value is an array "AB", "CD", and the original string will be emitted twice by the mapper: once for "AB", and once for "CD". In this way, we can expect that the reduce task for bucket "CD" will produce edges to nodes located outside bucket "AB", hence reconnecting the graph.
 
 The number of stages used will also have an impact on the quality of the graph, and on the quantity of data to shuffle and transmit over the network.
 
@@ -265,7 +265,7 @@ To compute the similarity between spam subjects, we use Jaro-Winkler \cite{winkl
 
 To compare the accuracy of algorithms, like in \cite{Dong2011}, we use recall to measure the quality of produced graphs. The ground truth is the true $k$-NN graph obtained using the naive, brute-force, algorithm. The recall of a single node is the number of its correct edges divided by $k$. The recall of an approximate $k$-NN graph is the average recall of all nodes.
 
-For the tests, we use a dataset containing the subject of 200.000 spam emails, and want to build a $10$-NN graph. For NNCTPH, we use two stages, hashes of two characters, and we let the number of possible characters vary between 31 and 40. Doing so, we let the number of buckets vary between 961 and 1600, and the average number of spams per bucket vary between 208 and 125. The resulting execution time and recall are displayed in Table \~ref{table:nnctph:characters}.
+For the tests, we use a dataset containing the subject of 200.000 spam emails, and want to build a $10$-NN graph. For NNCTPH, we use two stages, hashes of two characters, and we let the number of possible characters vary between 31 and 40. Doing so, we let the number of buckets vary between 961 and 1600, and the average number of spams per bucket vary between 208 and 125. The resulting execution time and recall are displayed in Table~\ref{table:nnctph:characters}.
 
 \begin{table}[ht]
   \caption{Running time and recall of NNCTPH algorithm on a dataset of 200.000 spams\newline with two stages and hashes of two characters, to build a $10$-NN graph}
@@ -278,7 +278,7 @@ For the tests, we use a dataset containing the subject of 200.000 spam emails, a
     Characters				& 31		& 32		& 33		& 34		& 35		\\
     Buckets				& 961		& 1024		& 1089		& 1156		& 1225		\\
     Running time (sec)  		& 153		& 207		& 136		& 142        	& 118		\\
-    \# similarities\newline(x 1000.000)	& 160		& 164		& 156		& 146		& 143		\\
+    Similarities\newline(x 1000.000)	& 160		& 164		& 156		& 146		& 143		\\
     Recall				& 23.39\%	& 23.40\%	& 23.17\%	& 23.24\%	& 23.25\%	\\
     \hline
 
@@ -287,7 +287,7 @@ For the tests, we use a dataset containing the subject of 200.000 spam emails, a
     Characters				& 36		& 37		& 38		& 39		& 40		\\
     Buckets				& 1296		& 1369		& 1444		& 1521		& 1600		\\
     Running time (sec)  		& 129		& 141		& 115		& 157         	& 174		\\
-    \# similarities\newline(x 1000.000)	& 138		& 138		& 133		& 129		& 133		\\
+    Similarities\newline(x 1000.000)	& 138		& 138		& 133		& 129		& 133		\\
     Recall				& 23.18\%	& 23.05\%	& 23.04\%	& 23.08\%	& 23.08\%	\\
     \hline
 
@@ -296,7 +296,7 @@ For the tests, we use a dataset containing the subject of 200.000 spam emails, a
 
 As we can notice, the number of edges that are correctly found is fairly stable, around 23\%. This might seem low, but given the size of our dataset, rapidly discovering this amount of correct edges is not trivial. The average running time of our algorithm for these tests is 140 sec. As a matter of comparison, the brute-force algorithm we use to compute ground truth takes approximatively 9h to complete on the same hardware.
 
-We also compare our algorithm with a MapReduce implementation of NNDescent. Table \~ref{table:nndescent} shows the running time and recall of 10 iterations of NNDescent on the same dataset. As we can see, the algorithm requires 8 or 9 iterations to achieve the same result. For the same quality of the resulting graph, our algorithm is thus 4 times faster than NNDescent.
+We also compare our algorithm with a MapReduce implementation of NNDescent. Table~\ref{table:nndescent} shows the running time and recall of 10 iterations of NNDescent on the same dataset. As we can see, the algorithm requires 8 or 9 iterations to achieve the same result. For the same quality of the resulting graph, our algorithm is thus 4 times faster than NNDescent.
 
 \begin{table}[ht]
   \caption{Running time and recall of NNDescent algorithm on a dataset of 200.000 spams, to build a $10$-NN graph}
@@ -314,15 +314,43 @@ We also compare our algorithm with a MapReduce implementation of NNDescent. Tabl
     \textbf{Iterations}			& \textbf{6}   	& \textbf{7}	& \textbf{8} 	& \textbf{9}	& \textbf{10}  	\\
     \hline
     Running time (sec)  		& 472 		& 537           & 604		& 670          	& 736		\\
-    \# similarities\newline(x 1000.000)	& 132		& 154		& 176		& 198		& 220		\\
+    Similarities\newline(x 1000.000)	& 132		& 154		& 176		& 198		& 220		\\
     Recall				& 18.20\%	& 21.57\%	& 23.09\%	& 23.77\%	& 24.07\%	\\
     \hline
   \end{tabular} 
 \end{table}
 
-On Table \~ref{table:nnctph:characters} we can observe that, as we could expect, when the number of letters and thus the number of buckets rise, the number of computed similarities roughly decreases. But it is not necessarily the case of the computing time. This is mainly due to the fact that the data sent by the mappers to the reduce tasks is skewed. The computing time is thus dominated by these few reduce tasks that have a lot more similarities to compute than the others.
+Moreover, even when we execute more iterations of NNDescent, the algorithm has difficulties to reach a recall higher than 24\%. This is shown on Figure~\ref{figure:nndescent-30}. It shows the evolution of recall for up to 30 iterations of NNDescent. As we can see, starting from iteration 9, the recall only rises very slowly. This is probably due to the structure of our dataset, where some additional edges are difficult to find because they are "hidden" amongst a lot of other edges of similar but slightly inferior similarity.
 
-This is confirmed on Figure \~ref{figure:frequency} that shows the frequency distribution of the number of nodes per bucket (and thus per reduce task). NNCTPH was used on the dataset of 200.000 spams, with two stages, hashes of two characters, and 32 letters. We thus have 1024 buckets. As we can see, there is a peak around 100 nodes per bucket, but there are also a lot of buckets with more than 1000 nodes, and even one with approximatively 7000 nodes. As the algorithm uses brute-force to compute edges inside buckets, these one will have much more similarities to compute, and will mostly be responsible for the execution time.
+\begin{figure}[ht]
+  \centering
+
+  \begin{tikzpicture}
+
+  \begin{axis}[
+  ylabel={Recall (\%)},
+  xlabel={Iterations},
+  width={10cm},
+  height={6cm},
+  scale only axis]
+
+  \addplot [
+    color=blue,
+    only marks,
+    mark=*,
+    mark options={solid}
+  ] table{nndescent-30-recall.dat};
+
+  \end{axis}
+\end{tikzpicture}
+
+\caption{Evolution of recall for NNDescent algorithm with up to 30 iterations\newline for a dataset of 200.000 spam subjects}
+\label{figure:nndescent-30}
+\end{figure}
+
+On Table~\ref{table:nnctph:characters} we can observe that, as we could expect, when the number of letters and thus the number of buckets rise, the number of computed similarities roughly decreases. But it is not necessarily the case of the computing time. This is mainly due to the fact that the data sent by the mappers to the reduce tasks is skewed. The computing time is thus dominated by these few reduce tasks that have a lot more similarities to compute than the others.
+
+This is confirmed on Figure~\ref{figure:frequency} that shows the frequency distribution of the number of nodes per bucket (and thus per reduce task). NNCTPH is used on the dataset of 200.000 spams, with two stages, hashes of two characters, and 32 letters. We thus have 1024 buckets, and an average of 195 strings per bucket. As we can see, there is a peak around 100 nodes per bucket, but there are also a lot of buckets with more than 1000 nodes, and even one with approximatively 7000 nodes. As the algorithm uses brute-force to compute edges inside buckets, these one will have much more similarities to compute, and will mostly be responsible for the execution time.
 
 \begin{figure}
   \centering
@@ -355,9 +383,11 @@ This is confirmed on Figure \~ref{figure:frequency} that shows the frequency dis
 \label{figure:frequency}
 \end{figure}
 
-To alleviate this problem, we plan to use NNDescent instead of brute-force to find nearest-neighbors inside buckets. Handling skewed data is not a trivial problem, and has already been studied in the context of distributed databases for example \cite{Xu:2008:HDS:1376616.1376720}. To improve the performance of NNCTPH we will have to tackle this problem. Amongst other possibilities we plan to apply extendible hashing.
+To alleviate this problem, we plan to use NNDescent instead of brute-force to find nearest-neighbors inside buckets. This algorithm has proved to be very efficient when implemented sequentially, and does not require $O(n^2)$ similarity computations. Handling skewed data is not a trivial problem, and has already been studied in the context of distributed databases for example \cite{Xu:2008:HDS:1376616.1376720}. To improve the performance of NNCTPH we will have to tackle this problem. Amongst other possibilities we plan to apply extendible hashing.
 
-\subsection{Performance}
+\subsection{Scalability}
+
+To test the scalability of our algorithm, we run it against different datasets containing 200.000 to 800.000 spam emails. We use two stages, hashes of two characters, and 64 letters (4096 buckets). This time we don't have the ground-truth to compute recall, but we compute the average similarity of computed edges. We compare the obtained results with NNDescent algorithm running a fixed number of eight iterations.
 
 To compare the performance and computational cost of the algorithms, as the number of similarities to compute depends on the size of the dataset, we use the scan rate, defined as follows:
 
@@ -366,18 +396,27 @@ $$ \text{scan rate} = \frac{\text{\# similarity evaluations}}{n (n-1) / 2} $$
 where $n (n-1) / 2$ is the number of similarities computed by the naive algorithm.
 
 \begin{table}[h]
-  \caption{Running time and scan rate of NNCTPH algorithm}
+  \caption{Running time, scan rate and average similarity of edges found by NNCTPH and NNDescent on different datasets}
   \label{table:nnctph} 
   \centering
   \begin{tabular}{p{3.4cm} *{4}{p{2.4cm}}}
     \hline
-                    	& \textbf{spam200k}   	& \textbf{spam400k}   	& \textbf{spam600k} 	& \textbf{spam800k}  	\\
+    \textbf{Dataset}   			& \textbf{spam200k}   	& \textbf{spam400k}   	& \textbf{spam600k} 	& \textbf{spam800k}  	\\
+    Spams           			& 200.000             	& 400.000             	& 600.000		& 800.000            	\\
     \hline
-    \# spams           	& 200.000             	& 400.000             	& 600.000		& 800.000            	\\
-    Running time (sec)  & 97	           	& 316           	& 675			& 1093          	\\
-    \# similarities	& 88.262.345		& 359.577.959		& 773.200.303		& 1.346.569.275		\\
-    Scan rate		& 0.44\%		& 0.45\%		& 0.43\%		& 0.42\%		\\
+    \textbf{NNCTPH} \\
+    Running time (sec)  		& 97	           	& 316           	& 675			& 1093          	\\
+    Similarities\newline(x 1000.000)	& 88			& 359			& 773			& 1346			\\
+    Scan rate				& 0.44\%		& 0.45\%		& 0.43\%		& 0.42\%		\\
+    Average similarity			&			&			&			&			\\
     \hline
+    \textbf{NNDescent} \\
+    Running time (sec)  		& 604	           	& 842			& 			& 			\\
+    Similarities\newline(x 1000.000)	& 132			& 352			& 			& 			\\
+    Scan rate				& 6.66\%		& \%		& \%		& \%		\\
+    Average similarity			& 			&			&			&			\\
+    \hline
+
   \end{tabular} 
 \end{table}
 
@@ -386,6 +425,19 @@ where $n (n-1) / 2$ is the number of similarities computed by the naive algorith
 
 \section{Conclusions and future work}
 
+In this paper we propose NNCTPH, a MapReduce algorithm that builds an approximate $k$-NN graph from large text datasets. The algorithm uses a modified version of Context Triggered Piecewise Hashing to bin the input data into buckets, and uses brute-force inside the buckets to build the graph. It also uses multiple stages to join the different unconnected subgraphs.
+
+We experimentally test the algorithm on different datasets consisting of the subject of spam emails.  Although the algorithm is still at an early development stage, it already proves to be four times faster than a MapReduce implementation of NNDescent, for the same quality of produced graph.
+
+In the future we plan to:
+\begin{itemize}
+  \item Use NNDescent inside the buckets, as this algorithm has to be very efficient when implemented sequentially;
+  \item Study the influence of the different parameters of the algorihm on the quality of the resulting graph, and on the performance of the algorithm (computational cost, parallelization, network traffic);
+  \item Study the problem of skewed data;
+  \item Study the influence of graph quality on the algorithms applied afterward on the graph (connected components for example);
+  \item Test the scalability of the algorithm on bigger datasets and bigger clusters;
+  \item Compare the algorithm with algorithms that build a $k$-NN graph using the bag-of-words (BOW) model.
+\end{itemize}
 
 \acks{This work has been partially supported by the EU project BigFoot (FP7-ICT-317858).}
 
