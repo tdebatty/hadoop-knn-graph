@@ -91,7 +91,7 @@ public class CompositeInputSplit extends InputSplit implements Writable {
      */
     @Override
     public String[] getLocations() throws IOException, InterruptedException {
-        HashSet<String> hosts = new HashSet<>();
+        HashSet<String> hosts = new HashSet<String>();
         for (InputSplit s : splits) {
             String[] hints = s.getLocations();
             if (hints != null && hints.length > 0) {

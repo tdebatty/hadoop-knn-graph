@@ -30,6 +30,14 @@ class FilterReducer extends Reducer<Node, NeighborList, Node, NeighborList> {
             }
         }
         
+        // Compute average edge similarity
+        for (Neighbor neighbor : new_neighborlist) {
+            context.getCounter("NNDescent", "Total similarity").increment(
+                    (long) (neighbor.similarity * 1000)
+            );
+        }
+        
+        
         context.write(key, new_neighborlist);
         
     }

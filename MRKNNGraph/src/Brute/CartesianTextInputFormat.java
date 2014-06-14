@@ -33,7 +33,7 @@ class CartesianTextInputFormat extends FileInputFormat<Text, Text>{
         String left_input_path = job.getConfiguration().get(LEFT_INPUT_PATH);
         String right_input_path = job.getConfiguration().get(RIGHT_INPUT_PATH);
         
-        ArrayList splits = new ArrayList<>();
+        ArrayList splits = new ArrayList();
         
         Job new_job = new Job(job.getConfiguration());
         
@@ -52,7 +52,7 @@ class CartesianTextInputFormat extends FileInputFormat<Text, Text>{
                     cis.add(left);
                     cis.add(right);
                     splits.add(cis);
-                } catch (IOException | InterruptedException ex) {
+                } catch (Exception ex) {
                     System.out.println("Could not create composite split :(");
                 }
             }

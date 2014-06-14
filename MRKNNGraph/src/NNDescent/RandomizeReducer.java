@@ -27,7 +27,7 @@ class RandomizeReducer
     protected void reduce(LongWritable key, Iterable<Node> values, Context context) throws IOException, InterruptedException {
                 
             
-            ArrayList<Node> nodes = new ArrayList<>();
+            ArrayList<Node> nodes = new ArrayList<Node>();
             Random rnd = new Random();
             
             for (Node n : values) {

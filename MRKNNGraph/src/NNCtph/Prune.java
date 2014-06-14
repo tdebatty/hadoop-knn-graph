@@ -127,7 +127,7 @@ class PruneReducer extends Reducer<Text, Edge, NullWritable, Text> {
             throws IOException, InterruptedException {
         
         
-        PriorityQueue<Edge> edges = new PriorityQueue<>(k);
+        PriorityQueue<Edge> edges = new PriorityQueue<Edge>(k);
         
         for(Edge e : values) {
             if (edges.size() < k &&

@@ -24,7 +24,7 @@ class FilterMapper extends Mapper<LongWritable, Text, Node, NeighborList> {
         Node n = Node.parseString(input[0]);
         NeighborList neighbors_list = NeighborList.parseString(input[1]);
         
-        ArrayList<Node> nodes_list = new ArrayList<>();
+        ArrayList<Node> nodes_list = new ArrayList<Node>();
         nodes_list.add(n);
         for (Neighbor neighbor : neighbors_list) {
             nodes_list.add(neighbor.node);

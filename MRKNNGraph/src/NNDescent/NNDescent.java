@@ -3,6 +3,7 @@ package NNDescent;
 import MRKNNGraph.Node;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,7 +50,6 @@ public class NNDescent extends Configured implements Tool
         
         long start = System.currentTimeMillis();
         
-        
         Randomize();
         Merge();
         
@@ -57,6 +57,7 @@ public class NNDescent extends Configured implements Tool
         
         while (true) {
             iteration++;
+            
             System.out.println("Iteration : " + iteration);
             System.out.println("---------------");
             
@@ -74,6 +75,7 @@ public class NNDescent extends Configured implements Tool
                 break;
             }
         }
+        System.out.println("Run succeeded");
         return 0;
     }
     
@@ -107,7 +109,13 @@ public class NNDescent extends Configured implements Tool
         job.setOutputFormatClass(TextOutputFormat.class);
         TextOutputFormat.setOutputPath(job, new Path(out + "-" + iteration + "-filter"));
         
-        return job.waitForCompletion(true);
+        boolean r = job.waitForCompletion(true);
+        
+        //System.out.println("Total similarity of edges: " + 
+        //        job.getCounters().findCounter("NNDescent", "Total similarity").getValue());
+        //
+        
+        return r;
     }
     
     /**

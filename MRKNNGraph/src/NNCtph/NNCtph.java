@@ -161,11 +161,12 @@ public class NNCtph extends Configured implements Tool {
    public static Object fromString( String s )
            throws IOException, ClassNotFoundException {
         byte [] data = Base64.decodeBase64(s );
-        Object o;
-        try (ObjectInputStream ois = new ObjectInputStream( 
-                new ByteArrayInputStream(data))) {
-            o = ois.readObject();
-        }
+        Object o = null;
+        
+        ObjectInputStream ois = new ObjectInputStream( 
+                new ByteArrayInputStream(data));
+        o = ois.readObject();
+        
         return o;
    }
 
@@ -175,9 +176,9 @@ public class NNCtph extends Configured implements Tool {
      * @throws java.io.IOException */
     public static String toString( Serializable o ) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-            oos.writeObject(o);
-        }
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        
         return new String(Base64.encodeBase64(baos.toByteArray()));
     }
     
@@ -298,7 +299,7 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
         // add similarities and nodes to an arraylist
         // total number is not known for now...
         
-        ArrayList<Node> nodes = new ArrayList<>();
+        ArrayList<Node> nodes = new ArrayList<Node>();
         for (Node n : values) {
             // We need to create a copy of n, as Hadoop will reuse the same
             // object, and simply overwrite the values
@@ -306,9 +307,6 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
             nodes.add(new Node(n));
         }
         
-        
-        
-
         int n = nodes.size();
         System.out.println(n);
         
@@ -331,7 +329,7 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
                 pos++;
             }            
         }
-        context.getCounter("NNCTPH", "# similarities").increment(pos);
+        context.getCounter("NNCTPH", "computed similarities").increment(pos);
         
         
         //System.out.println("Computed " + pos + " similarities");
@@ -361,7 +359,7 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
             context.progress();
             
             Node node = nodes.get(i);
-            PriorityQueue<Edge> edges = new PriorityQueue<>(this_k);
+            PriorityQueue<Edge> edges = new PriorityQueue<Edge>(this_k);
             for (int j = 0; j < n; j++) {
                 
                 
@@ -399,6 +397,8 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
             }
 
             for (Edge e : edges) {
+                context.getCounter("NNCTPH", "Total similarity (x1000)").increment(
+                        (long) (1000 * e.similarity));
                 context.write(NullWritable.get(), new Text(e.toString()));
             }
         }

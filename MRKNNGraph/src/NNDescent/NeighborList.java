@@ -20,7 +20,7 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
 
     public NeighborList() {
         super(Neighbor.class);
-        neighbors = new PriorityQueue<>();
+        neighbors = new PriorityQueue<Neighbor>();
     }
 
     /**
@@ -62,7 +62,7 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
     @Override
     public void readFields(DataInput in) throws IOException {
         super.readFields(in);
-        neighbors = new PriorityQueue<>();
+        neighbors = new PriorityQueue<Neighbor>();
         
         Writable[] array = this.get();
         for (Writable element : array) {
@@ -88,6 +88,7 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
     public static NeighborList parseString(String string) {
         String[] values = string.split(DELIMITER);
         NeighborList nl = new NeighborList();
+        nl.MAX_SIZE = Integer.MAX_VALUE;
         for (String s : values) {
             try {
                 nl.add(Neighbor.parseString(s));
