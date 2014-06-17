@@ -27,8 +27,5 @@ class MergeMapper extends Mapper<LongWritable, Text, Node, Neighbor> {
             System.out.println("Could not parse : " + value.toString());
             context.getCounter("NNDescent", "Failed parsing").increment(1);
         }
-
     }
-    
-    
 }

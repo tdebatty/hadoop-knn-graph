@@ -113,14 +113,20 @@ public class NeighborList extends ArrayWritable implements Iterable<Neighbor> {
     }
     
     public int CountCommons(NeighborList other) {
+        NeighborList copy = new NeighborList(other);
         int count = 0;
         for (Neighbor n : this.neighbors) {
-            if (other.contains(n)) {
-                count++;
+            String this_value = n.node.value;
+            
+            for (Neighbor other_n : copy.neighbors) {
+                if (other_n.node.value.equals(this_value)) {
+                    count++;
+                    copy.neighbors.remove(other_n);
+                    break;
+                }
             }
         }
         
         return count;
     }
-    
 }

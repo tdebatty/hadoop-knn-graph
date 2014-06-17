@@ -2,12 +2,14 @@ package Brute;
 
 import MRKNNGraph.Node;
 import NNDescent.NeighborList;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
+
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
@@ -49,7 +51,7 @@ public class Brute extends Configured implements Tool
         long start = System.currentTimeMillis();
         
         Configuration conf = getConf();
-        Job job = new Job(conf, this.getClass().getName());
+        Job job = Job.getInstance(conf);//  new Job(conf, this.getClass().getName());
         job.setJarByClass(this.getClass());
         
         // Reduce split size to 8MB to get more mappers!

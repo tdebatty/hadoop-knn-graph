@@ -3,7 +3,6 @@ package MRKNNGraph;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Objects;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -78,14 +77,13 @@ public class Node implements WritableComparable<Node> {
         
         Node other_node = (Node) other;
         return other_node.id.equals(this.id);
-    }
+    }    
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 89 * hash + Objects.hashCode(this.id);
+        int hash = 3;
+        hash = 29 * hash + (this.id != null ? this.id.hashCode() : 0);
         return hash;
     }
-    
     
 }

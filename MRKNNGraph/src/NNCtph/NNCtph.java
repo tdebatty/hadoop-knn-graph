@@ -2,6 +2,8 @@ package NNCtph;
 
 import MRKNNGraph.Edge;
 import MRKNNGraph.Node;
+import NNDescent.Neighbor;
+import NNDescent.NeighborList;
 
 import info.debatty.stringsimilarity.JaroWinkler;
 
@@ -144,8 +146,8 @@ public class NNCtph extends Configured implements Tool {
         job.setMapOutputValueClass(Node.class);
         
         job.setReducerClass(NNCTPHReducer.class);
-        job.setOutputKeyClass(NullWritable.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(Node.class);
+        job.setOutputValueClass(NeighborList.class);
         
         job.setOutputFormatClass(TextOutputFormat.class);
         TextOutputFormat.setOutputPath(job, new Path(out));
@@ -161,13 +163,10 @@ public class NNCtph extends Configured implements Tool {
    public static Object fromString( String s )
            throws IOException, ClassNotFoundException {
         byte [] data = Base64.decodeBase64(s );
-        Object o = null;
         
         ObjectInputStream ois = new ObjectInputStream( 
                 new ByteArrayInputStream(data));
-        o = ois.readObject();
-        
-        return o;
+        return ois.readObject();
    }
 
     /** Write the object to a Base64 string.
@@ -260,12 +259,10 @@ class NNCTPHMapper extends Mapper<LongWritable, Text, Text, Node> {
     }
 }
 
-class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
+class NNCTPHReducer extends Reducer<Text, Node, Node, NeighborList> {
     SimilarityCalculator sc;
     int k = -1;
     int stages = -1;
-    
-    public static final int mb = 1024*1024;
     
     @Override
     protected void setup(Reducer.Context context) throws IOException, InterruptedException {
@@ -359,7 +356,10 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
             context.progress();
             
             Node node = nodes.get(i);
-            PriorityQueue<Edge> edges = new PriorityQueue<Edge>(this_k);
+            //PriorityQueue<Edge> edges = new PriorityQueue<Edge>(this_k);
+            NeighborList nl = new NeighborList();
+            nl.MAX_SIZE = this_k;
+            
             for (int j = 0; j < n; j++) {
                 
                 
@@ -376,9 +376,11 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
                     
                 }
                 
+                nl.add(new Neighbor(nodes.get(j), similarity));
+                
                 //System.out.println(node.value + " <=> " + nodes.get(j).value + " : " + similarity);
             
-                if (edges.size() < this_k) {
+                /*if (edges.size() < this_k) {
                     edges.add(new Edge(
                             node,
                             nodes.get(j),
@@ -393,14 +395,16 @@ class NNCTPHReducer extends Reducer<Text, Node, NullWritable, Text> {
                             node,
                             nodes.get(j),
                             similarity));
-                }
+                }*/
             }
+            
+            context.write(node, nl);
 
-            for (Edge e : edges) {
-                context.getCounter("NNCTPH", "Total similarity (x1000)").increment(
-                        (long) (1000 * e.similarity));
-                context.write(NullWritable.get(), new Text(e.toString()));
-            }
+            //for (Edge e : edges) {
+            //    context.getCounter("NNCTPH", "Total similarity (x1000)").increment(
+            //            (long) (1000 * e.similarity));
+            //    context.write(NullWritable.get(), new Text(e.toString()));
+            //}
         }
     }
 }

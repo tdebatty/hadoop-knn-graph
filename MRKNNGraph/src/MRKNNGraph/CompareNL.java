@@ -1,9 +1,11 @@
 package MRKNNGraph;
 
 import NNDescent.NeighborList;
+
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -89,7 +91,6 @@ class CompareNLMapper extends Mapper<LongWritable, Text, Node, NeighborList>{
             Logger.getLogger(this.getClass().getName()).warning("Failed to parse " + value.toString());
             context.getCounter("Compare", "Failed parsing").increment(1);
         }
-        
     }
 }
 
@@ -99,17 +100,23 @@ class CompareNLReducer extends Reducer<Node, NeighborList, NullWritable, NullWri
     protected void reduce(Node key, Iterable<NeighborList> values, Context context)
             throws IOException, InterruptedException {
         
+        NeighborList nl1;
+        NeighborList nl2;
+        
         // Will receive 2 NeigborLists
         try {
             // Make a copy of lists!!
-            NeighborList nl1 = new NeighborList(values.iterator().next());
-            NeighborList nl2 = new NeighborList(values.iterator().next());
-            int count = nl1.CountCommons(nl2);
-            context.getCounter("CompareNLReducer", "Count Commons").increment(count);
-            System.out.println(key.id.toString() + " : " + count);
+            nl1 = new NeighborList(values.iterator().next());
+            nl2 = new NeighborList(values.iterator().next());
+            
         } catch (Exception ex) {
             context.getCounter("CompareNLReducer", "# Node has less than 2 NeighborLists").increment(1);
+            return;
         }
+        
+        int count = nl1.CountCommons(nl2);
+        context.getCounter("CompareNLReducer", "Count Commons").increment(count);
+        //System.out.println(key.id.toString() + " : " + count);
     
     }
     

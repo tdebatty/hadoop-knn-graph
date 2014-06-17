@@ -49,7 +49,7 @@ public class Neighbor implements WritableComparable<Neighbor> {
         return node.toString() + DELIMITER + String.valueOf(similarity);
     }
     
-    static Neighbor parseString(String s) {
+    public static Neighbor parseString(String s) {
         String[] values = s.split(DELIMITER, 2);
         return new Neighbor(Node.parseString(values[0]), Double.valueOf(values[1]));
         
