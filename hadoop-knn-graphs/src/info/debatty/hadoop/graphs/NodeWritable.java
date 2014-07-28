@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.security.InvalidParameterException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
@@ -57,9 +58,25 @@ public class NodeWritable implements WritableComparable {
         if (! o.getClass().isInstance(this)) {
             throw new InvalidParameterException();
         }
+
+        return this.node.id.compareTo(((NodeWritable) o).node.id);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (! o.getClass().isInstance(this)) {
+            return false;
+        }
         
+        return this.node.equals(((NodeWritable) o).node);
         
-        return this.node.id.compareTo( ((NodeWritable)o).get().id );
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + (this.node != null ? this.node.hashCode() : 0);
+        return hash;
     }
     
     /**

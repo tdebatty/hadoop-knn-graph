@@ -140,8 +140,6 @@ class BruteMapper  extends Mapper<Text, Text, NodeWritable, NeighborListWritable
         
             similarity = (SimilarityInterface) ObjectSerialize.unserialize(
                 context.getConfiguration().get(Brute.KEY_SIMILARITY));
-            
-            System.out.println(context.getConfiguration().get(Brute.KEY_SIMILARITY));
         
         } catch (Exception ex) {
             System.out.println("Could not load string parser and/or similarity metric");
